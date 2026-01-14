@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Todo List</title>
+    <title data-i18n-title="metaTitle">Todo List</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <meta
       property="og:image"
@@ -360,14 +360,56 @@
         text-align: center;
 }
   </style>
+  <style>
+    .lang-switch {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: inline-flex;
+      gap: 0;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 12px rgba(18, 20, 23, 0.12);
+      z-index: 1000;
+    }
+    .lang-switch button {
+      border: none;
+      background: transparent;
+      color: rgba(18, 20, 23, 0.7);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 44px;
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+    .lang-switch button.active {
+      background: #3c91e6;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(60, 145, 230, 0.4);
+    }
+    .lang-switch button:not(.active):hover {
+      background: rgba(60, 145, 230, 0.2);
+      color: rgba(18, 20, 23, 0.9);
+    }
+  </style>
 </head>
   <body>
+    <div class="lang-switch" role="tablist" aria-label="Language switcher">
+      <button type="button" data-lang="ko" class="active">KR</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
     <div class="wrap">
       <div class="halo" aria-hidden="true"></div>
       <div class="grid">
         <header>
-          <h1>오늘의 할 일</h1>
-          <p>집중할 일만 담아두고, 완료하면 시원하게 체크해요.</p>
+          <h1 data-i18n="title">오늘의 할 일</h1>
+          <p data-i18n="subtitle">집중할 일만 담아두고, 완료하면 시원하게 체크해요.</p>
         </header>
 
         <section class="panel" aria-label="Todo 입력">
@@ -377,15 +419,18 @@
               type="text"
               placeholder="새로운 할 일을 입력하세요"
               aria-label="새로운 할 일"
+              data-i18n-placeholder="inputPlaceholder"
+              data-i18n-aria="inputAria"
             />
-            <button id="add-btn" type="button">추가</button>
+            <button id="add-btn" type="button" data-i18n="btnAdd">추가</button>
           </div>
-          <div class="filters" role="tablist" aria-label="필터">
+          <div class="filters" role="tablist" data-i18n-aria="filterAria">
             <button
               class="chip active"
               data-filter="all"
               role="tab"
               aria-selected="true"
+              data-i18n="filterAll"
             >
               전체
             </button>
@@ -394,6 +439,7 @@
               data-filter="active"
               role="tab"
               aria-selected="false"
+              data-i18n="filterActive"
             >
               진행 중
             </button>
@@ -402,6 +448,7 @@
               data-filter="done"
               role="tab"
               aria-selected="false"
+              data-i18n="filterDone"
             >
               완료
             </button>
@@ -411,15 +458,15 @@
 
         <section class="panel" aria-label="Todo 리스트">
           <ul class="list" id="todo-list"></ul>
-          <div class="empty" id="empty">
+          <div class="empty" id="empty" data-i18n="emptyMessage">
             아직 목록이 비었어요. 첫 할 일을 추가해보세요.
           </div>
         </section>
       </div>
 
       <div class="footer">
-        <a href="https://funnyfunny.cloud/" target="_blank" class="footer-link">
-          다른 서비스 보기
+        <a href="https://funnyfunny.cloud/" target="_blank" class="footer-link">        
+          <span data-i18n="btnOtherServices">다른 서비스 보기</span>
           <svg
             width="16"
             height="16"
@@ -440,6 +487,141 @@
     </div>
 
     <script>
+      // =========================
+      // i18n
+      // =========================
+      const translations = {
+        ko: {
+          metaTitle: "Todo List",
+          title: "오늘의 할 일",
+          subtitle: "집중할 일만 담아두고, 완료하면 시원하게 체크해요.",
+          inputPlaceholder: "새로운 할 일을 입력하세요",
+          inputAria: "새로운 할 일",
+          btnAdd: "추가",
+          filterAria: "필터",
+          filterAll: "전체",
+          filterActive: "진행 중",
+          filterDone: "완료",
+          emptyMessage: "아직 목록이 비었어요. 첫 할 일을 추가해보세요.",
+          btnOtherServices: "다른 서비스 보기",
+          btnDelete: "삭제",
+          metaDisplay: "{total}개 중 {done}개 완료",
+        },
+        en: {
+          metaTitle: "Todo List",
+          title: "Today's Tasks",
+          subtitle: "Focus on what matters. Check them off when done.",
+          inputPlaceholder: "Enter a new task",
+          inputAria: "New task",
+          btnAdd: "Add",
+          filterAria: "Filter",
+          filterAll: "All",
+          filterActive: "Active",
+          filterDone: "Done",
+          emptyMessage: "Your list is empty. Add your first task.",
+          btnOtherServices: "View Other Services",
+          btnDelete: "Delete",
+          metaDisplay: "{done} of {total} completed",
+        },
+      };
+
+      const defaultLang = "ko";
+      const supportedLangs = ["ko", "en"];
+      let currentLang = defaultLang;
+
+      function t(key, vars = {}) {
+        const langTable = translations[currentLang] || translations.ko;
+        let template = langTable?.[key] ?? translations.ko?.[key] ?? key;
+        if (typeof template !== "string") return template;
+        Object.keys(vars).forEach((k) => {
+          template = template.replace(new RegExp(`\\{${k}\\}`, "g"), vars[k]);
+        });
+        return template;
+      }
+
+      function applyTranslations() {
+        document.title = t("metaTitle");
+        document.documentElement.lang = currentLang;
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          el.textContent = t(el.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+          el.innerHTML = t(el.dataset.i18nHtml);
+        });
+        document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+          if (el.tagName === "TITLE") {
+            el.textContent = t(el.dataset.i18nTitle);
+          } else {
+            el.title = t(el.dataset.i18nTitle);
+          }
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+          el.placeholder = t(el.dataset.i18nPlaceholder);
+        });
+        document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+          el.setAttribute("aria-label", t(el.dataset.i18nAria));
+        });
+        document.querySelectorAll("[data-i18n-alt]").forEach((el) => {
+          el.setAttribute("alt", t(el.dataset.i18nAlt));
+        });
+      }
+
+      function detectLang() {
+        const params = new URLSearchParams(window.location.search);
+        const paramLang = params.get("lang");
+        if (supportedLangs.includes(paramLang)) return paramLang;
+        const stored = localStorage.getItem("preferredLang");
+        if (supportedLangs.includes(stored)) return stored;
+        const intlLocale =
+          typeof Intl === "object" && typeof Intl.DateTimeFormat === "function"
+            ? Intl.DateTimeFormat().resolvedOptions().locale
+            : "";
+        const sources = [
+          ...(navigator.languages || []),
+          navigator.language,
+          navigator.userLanguage,
+          intlLocale,
+        ]
+          .filter(Boolean)
+          .map((locale) => locale.toLowerCase());
+        const hasKorean = sources.some((locale) => locale.startsWith("ko"));
+        return hasKorean ? "ko" : "en";
+      }
+
+      function setLang(lang, options = {}) {
+        const nextLang = supportedLangs.includes(lang) ? lang : defaultLang;
+        currentLang = nextLang;
+        window.currentLang = currentLang;
+        document.documentElement.lang = nextLang;
+        localStorage.setItem("preferredLang", nextLang);
+        document.querySelectorAll(".lang-switch button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.lang === nextLang);
+        });
+        applyTranslations();
+        if (options.updateUrl) {
+          const url = new URL(window.location.href);
+          url.searchParams.set("lang", nextLang);
+          window.history.replaceState({}, "", url);
+        }
+        // Update dynamic content
+        if (window.items) {
+          render();
+        }
+      }
+
+      document.querySelectorAll(".lang-switch button").forEach((button) => {
+        button.addEventListener("click", () => {
+          setLang(button.dataset.lang, { updateUrl: true });
+        });
+      });
+
+      setLang(detectLang(), { updateUrl: false });
+
+      // Make t() function and currentLang globally available
+      window.t = t;
+      window.currentLang = currentLang;
+      window.setLang = setLang;
+
       const input = document.getElementById("todo-input");
       const addBtn = document.getElementById("add-btn");
       const list = document.getElementById("todo-list");
@@ -470,9 +652,10 @@
       };
 
       const updateMeta = () => {
+        const t = window.t || ((key, vars = {}) => key);
         const total = items.length;
         const done = items.filter((item) => item.done).length;
-        meta.textContent = `${total}개 중 ${done}개 완료`;
+        meta.textContent = t("metaDisplay", { total, done });
       };
 
       const setFilter = (value) => {
@@ -531,9 +714,10 @@
           const text = document.createElement("div");
           text.textContent = item.text;
 
+          const t = window.t || ((key, vars = {}) => key);
           const del = document.createElement("button");
           del.type = "button";
-          del.textContent = "삭제";
+          del.textContent = t("btnDelete");
           del.addEventListener("click", () => removeItem(item.id));
 
           li.append(box, text, del);
